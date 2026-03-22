@@ -1,0 +1,96 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+struct Point {
+    double x, y;
+};
+
+double dist2(const Point& a, const Point& b) {
+    double dx = a.x - b.x, dy = a.y - b.y;
+    return dx*dx + dy*dy;
+}
+
+double tour_length(const vector<int>& tour, const vector<vector<double>>& d) {
+    double len = 0;
+    for (size_t i = 0; i < tour.size(); i++)
+        len += d[tour[i]][tour[(i+1) % tour.size()]];
+    return len;
+}
+
+void two_opt(vector<int>& tour, const vector<vector<double>>& d, double& best_len) {
+    bool improved = true;
+    int n = tour.size();
+    
+    while (improved) {
+        improved = false;
+        for (int i = 0; i < n-1; i++) {
+            for (int j = i+2; j < n; j++) {
+                double curr = d[tour[i]][tour[i+1]] + d[tour[j]][tour[(j+1)%n]];
+                double newd = d[tour[i]][tour[j]] + d[tour[i+1]][tour[(j+1)%n]];
+                
+                if (newd < curr) {
+                    reverse(tour.begin() + i+1, tour.begin() + j+1);
+                    best_len += newd - curr;
+                    improved = true;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    // Тестовый пример: 4 города (квадрат)
+    int n = 4;
+    vector<Point> points = {
+        {0, 0},   // город 0
+        {10, 0},  // город 1
+        {10, 10}, // город 2
+        {0, 10}   // город 3
+    };
+    
+    // матрица квадратов расстояний
+    vector<vector<double>> d(n, vector<double>(n));
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            d[i][j] = dist2(points[i], points[j]);
+    
+    // начальное решение (жадное)
+    vector<int> tour(n);
+    vector<bool> used(n, false);
+    tour[0] = 0;
+    used[0] = true;
+    
+    for (int i = 1; i < n; i++) {
+        int last = tour[i-1];
+        int nearest = -1;
+        double min_d = 1e18;
+        for (int j = 0; j < n; j++) {
+            if (!used[j] && d[last][j] < min_d) {
+                min_d = d[last][j];
+                nearest = j;
+            }
+        }
+        tour[i] = nearest;
+        used[nearest] = true;
+    }
+    
+    double best_len = tour_length(tour, d);
+    
+    cout << "Начальный маршрут: ";
+    for (int i = 0; i < n; i++)
+        cout << tour[i] << " ";
+    cout << " Длина: " << best_len << endl;
+    
+    // локальный поиск
+    two_opt(tour, d, best_len);
+    
+    cout << "Оптимальный маршрут: ";
+    for (int i = 0; i < n; i++)
+        cout << tour[i] << " ";
+    cout << " Длина: " << best_len << endl;
+    
+    return 0;
+}
